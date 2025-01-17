@@ -56,13 +56,13 @@ public class ShortLink {
     @Override
     public String toString() {
         return "ShortLink{" +
-                "shortId='" + shortId + '\'' +
-                ", originalUrl='" + originalUrl + '\'' +
+                "shortId='" + shortId + "'" +
+                ", originalUrl='" + originalUrl + "'" +
                 ", createdAt=" + createdAt +
                 ", expiryTime=" + expiryTime +
                 ", limit=" + limit +
                 ", currentCount=" + currentCount +
                 ", userUuid=" + userUuid +
-                '}';
+                "}";
     }
 }

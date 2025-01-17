@@ -56,6 +56,15 @@ public class ShortLinkService {
         return link.getOriginalUrl();
     }
 
+    public void deleteLink(String shortId, UUID userId) {
+        ShortLink link = shortLinkRepository.find(shortId);
+        if (link.getUserUuid().equals(userId)) {
+            shortLinkRepository.delete(link);
+        } else {
+            throw new RuntimeException("Пользователь " + userId + " не является владельцем ссылки с идентификатором " + shortId + ".");
+        }
+    }
+
     public List<ShortLink> getUserLinks(UUID userUuid) {
         return shortLinkRepository.findAllByUuid(userUuid);
     }

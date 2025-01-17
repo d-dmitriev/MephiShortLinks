@@ -19,6 +19,7 @@ public class Main {
             Доступные команды:
             - shorten <url> [time] [limit]: Создание короткой ссылки
             - list: Просмотр всех ссылок пользователя
+            - delete <link>: Удаление короткой ссылки
             - open <shortId>: Переход по ссылке
             - whoami: Вывести текущего пользователя
             - login <uuid>: Установить текущего пользователя
@@ -27,7 +28,8 @@ public class Main {
             - exit: Завершение работы приложения""";
     public static final String UNAUTHORIZED = "Необходимо авторизоваться для выполнения команды.";
     public static final String EXIT = "Завершение работы программы. До свидания!";
-    public static final String OPEN_ERROR = "Введите идентификатор короткой ссылки.";
+    public static final String ERROR_EMPTY_LINK = "Введите идентификатор короткой ссылки.";
+    public static final String ERROR_EMPTY_LOGIN = "Введите идентификатор пользователя.";
     public static final String UNKNOWN = "Неизвестная команда. Введите 'help' для списка доступных команд.";
     public static final String SHORTEN_ERROR = "Введите URL.";
     public static final String CURRENT_USER = "Текущий пользователь: ";
@@ -40,8 +42,8 @@ public class Main {
     public static final String ERROR_OPEN_LINK = "Ошибка при попытке открыть ссылку: ";
     public static final String ERROR_DESKTOP_NOT_SUPPORTED = "Операция Desktop не поддерживается на данной системе.";
 
-    private static final ShortLinkService ShortLinkService = new ShortLinkService(new ShortLinkRepositoryImpl());
-    private static final UserService UserService = new UserService(new UserRepositoryImpl());
+    private static final ShortLinkService shortLinkService = new ShortLinkService(new ShortLinkRepositoryImpl());
+    private static final UserService userService = new UserService(new UserRepositoryImpl());
 
     private static UUID currentUser;
 
@@ -69,32 +71,45 @@ public class Main {
         try {
             switch (action) {
                 case "shorten":
+                    if (parts.length < 2) {
+                        throw new IllegalArgumentException(SHORTEN_ERROR);
+                    }
                     shortenUrl(parts);
                     break;
                 case "list":
                     checkLogin();
-                    ShortLinkService.getUserLinks(currentUser).forEach(link -> System.out.printf(LINK_MESSAGE,
+                    shortLinkService.getUserLinks(currentUser).forEach(link -> System.out.printf(LINK_MESSAGE,
                             link.getShortId(), link.getOriginalUrl(), link.getLimit(), link.getCurrentCount(),
                             (link.getExpiryTime() - System.currentTimeMillis()) / Config.getDivider()));
                     break;
+                case "delete":
+                    checkLogin();
+                    if (parts.length < 2) {
+                        throw new IllegalArgumentException(ERROR_EMPTY_LINK);
+                    }
+                    shortLinkService.deleteLink(parts[1], currentUser);
+                    break;
                 case "open":
                     if (parts.length < 2) {
-                        throw new IllegalArgumentException(OPEN_ERROR);
+                        throw new IllegalArgumentException(ERROR_EMPTY_LINK);
                     }
-                    openInBrowser(ShortLinkService.getOriginalUrl(parts[1]));
+                    openInBrowser(shortLinkService.getOriginalUrl(parts[1]));
                     break;
                 case "whoami":
                     checkLogin();
                     System.out.println(CURRENT_USER + currentUser);
                     break;
                 case "login":
+                    if (parts.length < 2) {
+                        throw new IllegalArgumentException(ERROR_EMPTY_LOGIN);
+                    }
                     currentUser = UUID.fromString(parts[1]);
                     break;
                 case "logout":
                     currentUser = null;
                     break;
                 case "users":
-                    UserService.listUsers().forEach(System.out::println);
+                    userService.listUsers().forEach(System.out::println);
                     break;
                 default:
                     System.out.println(UNKNOWN);
@@ -111,11 +126,7 @@ public class Main {
     }
 
     private static void shortenUrl(String[] parts) {
-        if (parts.length < 2) {
-            throw new IllegalArgumentException(SHORTEN_ERROR);
-        }
-
-        if (currentUser == null) currentUser = UserService.createUser();
+        if (currentUser == null) currentUser = userService.createUser();
 
         int userTtl = Integer.MAX_VALUE;
         int userLimit = 0;
@@ -131,7 +142,7 @@ public class Main {
         userTtl = Math.min(Config.getTtl(), userTtl);
         userLimit = Math.max(Config.getLimit(), userLimit);
 
-        String shortId = ShortLinkService.createShortLink(parts[1], currentUser, userTtl, userLimit);
+        String shortId = shortLinkService.createShortLink(parts[1], currentUser, userTtl, userLimit);
         System.out.printf(SHORTEN_MESSAGE, currentUser, shortId, userTtl, userLimit);
     }
 
