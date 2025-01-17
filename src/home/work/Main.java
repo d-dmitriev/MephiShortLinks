@@ -111,6 +111,9 @@ public class Main {
                 case "users":
                     userService.listUsers().forEach(System.out::println);
                     break;
+                case "help":
+                    System.out.println(USAGE);
+                    break;
                 default:
                     System.out.println(UNKNOWN);
             }
